@@ -6,6 +6,8 @@ import cn.smallbun.screw.core.engine.EngineFileType;
 import cn.smallbun.screw.core.engine.EngineTemplateType;
 import cn.smallbun.screw.core.execute.DocumentationExecute;
 import cn.smallbun.screw.core.process.ProcessConfig;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,7 +30,17 @@ public class GenDbDocApplicationTests {
      */
     @Test
     public void testGenDbDoc() {
-        DataSource dataSourceMysql = applicationContext.getBean(DataSource.class);
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        hikariConfig.setJdbcUrl("jdbc:mysql://localhost:3306/erp_yili?useUnicode=true&characterEncoding=utf-8&useSSL=false");
+        hikariConfig.setUsername("root");
+        hikariConfig.setPassword("root");
+        // 设置可以获取tables remarks信息
+        hikariConfig.addDataSourceProperty("useInformationSchema", "true");
+        hikariConfig.setMinimumIdle(2);
+        hikariConfig.setMaximumPoolSize(5);
+        DataSource dataSource = new HikariDataSource(hikariConfig);
+//        DataSource dataSourceMysql = applicationContext.getBean(DataSource.class);
         // 生成文件配置
         EngineConfig engineConfig = EngineConfig.builder()
                 // 生成文件路径 到当前项目下
@@ -43,7 +55,7 @@ public class GenDbDocApplicationTests {
         Configuration config = Configuration.builder()
                 .version("1.0.0")
                 .description("生成文档信息描述")
-                .dataSource(dataSourceMysql)
+                .dataSource(dataSource)
                 .engineConfig(engineConfig)
                 .produceConfig(getProcessConfig())
                 .build();
@@ -63,13 +75,15 @@ public class GenDbDocApplicationTests {
         List<String> ignorePrefix = Arrays.asList("a", "t");
         // 忽略表后缀
         List<String> ignoreSuffix = Arrays.asList("_test", "czb_");
+        // 根据表后缀生成
+        List<String> includeSuffix = Arrays.asList("_tj");
         return ProcessConfig.builder()
                 //根据名称指定表生成
 //                .designatedTableName(Arrays.asList("sys_user"))
                 //根据表前缀生成
                 .designatedTablePrefix(new ArrayList<>())
                 //根据表后缀生成
-                .designatedTableSuffix(new ArrayList<>())
+                .designatedTableSuffix(includeSuffix)
                 //忽略表名
                 .ignoreTableName(ignoreTableName)
                 //忽略表前缀
